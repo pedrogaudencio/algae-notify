@@ -1,0 +1,24 @@
+// create a config.json file with the url
+{
+    "url": "http://examle.com/api/data.json",
+    "limits": {
+        "h10": {"min": 5.00, "max": 95.00},
+        "t1": {"min": 20.00, "max": 29.0},
+        "t2": {"min": -26.00, "max": -10.00},
+        "t3": {"min": 0.30, "max": 6.00},
+        "t4": {"min": 13.00, "max": 20.00},
+        "t10": {"min": 5.00, "max": 30.00}
+    },
+    "sensors": {
+        "h10": "HumCultivos",
+        "t1": "TempScaleUp",
+        "t2": "Congelador",
+        "t3": "Frigorifico",
+        "t4": "Fitoclima",
+        "t10": "TempCultivos"
+    },
+    "template": {
+        "ok": "All good.",
+        "error": "{}: {}"
+    }
+}
