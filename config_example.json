@@ -1,5 +1,10 @@
-// create a config.json file with the url
 {
+    "_comments": "
+        1. create a config.json file with the url
+        2. enable gmail mail sending:
+            https://www.google.com/settings/security/lesssecureapps
+        3. ajust the schedule (in minutes)
+    ",
     "url": "http://examle.com/api/data.json",
     "limits": {
         "h10": {"min": 5.00, "max": 95.00},
@@ -23,8 +28,10 @@
     },
     "email": {
         "subject": "The Subject",
-        "from": "email1@example.com",
+        "from": "email@gmail.com",
+        "password": "my-gmail-password",
         "to": ["email2@example.com",
                "email3@example.com"]
-    }
+    },
+    "schedule": 5
 }

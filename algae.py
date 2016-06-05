@@ -1,11 +1,12 @@
+from datetime import datetime
 from email.mime.text import MIMEText
 import json
 import os
 import requests
 import smtplib
-import time
+from time import sleep
 
-DATE = time.strftime("%Y_%m_%d")
+DATE = str(datetime.today().date()).replace('-', '_')
 
 
 class AlgaeNotify(object):
@@ -16,6 +17,8 @@ class AlgaeNotify(object):
         self._template = config.get('template')
         self._email = config.get('email')
         self._filename = '/'.join([DATE, DATE]) + '.json'
+        self._last_email_timestamp = datetime.now()
+        self._interval = config.get('schedule') * 60
         self._chlorophyll = {}
         self._data = {}
 
@@ -45,43 +48,58 @@ class AlgaeNotify(object):
         return offbounds
 
     def store(self):
-        timestamp = time.strftime("%Y_%m_%d_%H_%M_%S")
+        dt = str(datetime.now())[:19].replace('-', '_').replace(':', '_')
         with open(self._filename, 'w') as outfile:
-            self._data[timestamp] = self._chlorophyll
+            self._data[dt] = self._chlorophyll
             json.dump(self._data, outfile)
 
-    def log(self, match={}):
-        if match:
-            body = ""
-            for m in match:
-                body += self._template.get('error').format(self._sensors[m[0]],
-                                                           m[1])
-        else:
-            body = self._template.get('ok')
+    def log(self, fails, send=False):
+        body = "{}\n\n".format(str(datetime.now())[:19])
+        if fails:
+            for fail in fails:
+                body += self._template.get('error').format(
+                    self._sensors[fail[0]],
+                    fail[1])
+        elif send:
+            body += self._template.get('ok')
 
-        self.notify(body.encode("utf-8"))
+        self.notify(body.encode("utf-8")) if fails or send else None
 
     def notify(self, body):
         msg = MIMEText(body)
         msg['Subject'] = self._email.get('subject')
         msg['From'] = self._email.get('from')
-        msg['To'] = self._email.get('to')
+        to = self._email.get('to')
+        msg['To'] = ', '.join(to) if len(to) > 1 else to[0]
         try:
-            s = smtplib.SMTP('localhost', 1025)
-            s.sendmail(msg['Subject'], msg['To'], msg.as_string())
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.ehlo()
+            server.starttls()
+            server.login(self._email.get('from'), self._email.get('password'))
+            server.sendmail(msg['Subject'], msg['To'], msg.as_string())
+            server.quit()
+            self.update_clock()
         except Exception as e:
             print("Something went wrong:\n\n{}".format(e))
+
+    def update_clock(self):
+        self._last_email_timestamp = datetime.now()
+
+    def delay(self):
+        sleep(self._interval)
 
     def grow(self):
         self.get_roots()
         self.photosynthesis()
-        match = self.check_range()
+        failures = self.check_range()
         self.store()
-        self.log(match)
+        self.log(failures)
+        self.delay()
 
 
 if __name__ == "__main__":
     with open('config.json') as f:
         config = json.load(f)
         algae = AlgaeNotify(config)
-        algae.grow()
+        while True:
+            algae.grow()
