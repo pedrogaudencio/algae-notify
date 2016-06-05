@@ -19,6 +19,12 @@
     },
     "template": {
         "ok": "All good.",
-        "error": "{}: {}"
+        "error": "{}: {}\n"
+    },
+    "email": {
+        "subject": "The Subject",
+        "from": "email1@example.com",
+        "to": ["email2@example.com",
+               "email3@example.com"]
     }
 }

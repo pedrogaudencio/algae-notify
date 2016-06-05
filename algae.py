@@ -1,6 +1,8 @@
+from email.mime.text import MIMEText
 import json
 import os
 import requests
+import smtplib
 import time
 
 DATE = time.strftime("%Y_%m_%d")
@@ -12,6 +14,7 @@ class AlgaeNotify(object):
         self._limits = config.get('limits')
         self._sensors = config.get('sensors')
         self._template = config.get('template')
+        self._email = config.get('email')
         self._filename = '/'.join([DATE, DATE]) + '.json'
         self._chlorophyll = {}
         self._data = {}
@@ -49,11 +52,25 @@ class AlgaeNotify(object):
 
     def log(self, match={}):
         if match:
+            body = ""
             for m in match:
-                print(self._template.get('error').format(self._sensors[m[0]],
-                                                         m[1]))
+                body += self._template.get('error').format(self._sensors[m[0]],
+                                                           m[1])
         else:
-            print(self._template.get('ok'))
+            body = self._template.get('ok')
+
+        self.notify(body.encode("utf-8"))
+
+    def notify(self, body):
+        msg = MIMEText(body)
+        msg['Subject'] = self._email.get('subject')
+        msg['From'] = self._email.get('from')
+        msg['To'] = self._email.get('to')
+        try:
+            s = smtplib.SMTP('localhost', 1025)
+            s.sendmail(msg['Subject'], msg['To'], msg.as_string())
+        except Exception as e:
+            print("Something went wrong:\n\n{}".format(e))
 
     def grow(self):
         self.get_roots()
