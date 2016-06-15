@@ -76,7 +76,7 @@ class AlgaeNotify(object):
             server.ehlo()
             server.starttls()
             server.login(self._email.get('from'), self._email.get('password'))
-            server.sendmail(msg['Subject'], msg['To'], msg.as_string())
+            server.sendmail(msg['Subject'], to, msg.as_string())
             server.quit()
             self.update_clock()
         except Exception as e:
