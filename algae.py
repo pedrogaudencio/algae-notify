@@ -1,6 +1,7 @@
 from datetime import datetime
 from email.mime.text import MIMEText
 import json
+from operator import div, eq
 import os
 import requests
 import smtplib
@@ -18,7 +19,9 @@ class AlgaeNotify(object):
         self._email = config.get('email')
         self._filename = '/'.join([DATE, DATE]) + '.json'
         self._last_email_timestamp = datetime.now()
-        self._interval = config.get('schedule') * 60
+        self._run_interval = config.get('interval').get('running') * 60
+        self._stalled_length = div(config.get('interval').get('stalled'),
+                                   self._run_interval)
         self._chlorophyll = {}
         self._data = {}
 
@@ -47,19 +50,43 @@ class AlgaeNotify(object):
                 offbounds.append((sensor, value))
         return offbounds
 
+    def stalling(self):
+        """
+        1. get interval
+        2. get all values within that interval
+        3. check if they're all the same
+        4. get time in seconds (from 1970?) and calculate
+        5. write backwards compability for previous dates
+        6. if it's simple and fast like
+           self._chlorophyll.values()[:5].replace('_', ',')
+           just run everything like this, otherwise should store in different
+           format
+        7. do log() more generic (self, fails, error='match', send=False)
+        8. log(fails, why='offline')
+        """
+        measurements = self._chlorophyll.values()[:self._stalled_length]
+        set_m1 = set(measurements.pop())
+        fails = all(map(lambda m: eq(len(set(m) | set_m1),
+                                     len(set_m1)),
+                        measurements))
+        self.log(fails, why='offline')
+
     def store(self):
         dt = str(datetime.now())[:19].replace('-', '_').replace(':', '_')
         with open(self._filename, 'w') as outfile:
             self._data[dt] = self._chlorophyll
             json.dump(self._data, outfile)
 
-    def log(self, fails, send=False):
+    def log(self, fails, why='match', send=False):
         body = "{}\n\n".format(str(datetime.now())[:19])
         if fails:
-            for fail in fails:
-                body += self._template.get('error').format(
-                    self._sensors[fail[0]],
-                    fail[1])
+            if why == 'match':
+                for fail in fails:
+                    body += self._template.get('error').get(why).format(
+                        self._sensors[fail[0]],
+                        fail[1])
+            elif why == 'offline':
+                body += self._template.get('error').get(why)
         elif send:
             body += self._template.get('ok')
 

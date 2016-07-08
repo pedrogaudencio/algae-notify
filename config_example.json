@@ -24,7 +24,10 @@
     },
     "template": {
         "ok": "All good.",
-        "error": "{}: {}\n"
+        "error": {
+            "match": "{}: {}\n",
+            "offline": "The system is offline.\n"
+        }
     },
     "email": {
         "subject": "The Subject",
@@ -33,5 +36,8 @@
         "to": ["email2@example.com",
                "email3@example.com"]
     },
-    "schedule": 5
+    "interval": {
+        "running": 5,
+        "stalled": 20,
+    }
 }
